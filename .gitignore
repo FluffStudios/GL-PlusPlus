@@ -1,0 +1,10 @@
+*.cmake
+*.vs
+*.vcxproj*
+*CMakeFiles*
+*CMakeCache.txt
+*.sln
+*gl-plusplus.dir*
+*Debug*
+*Win32*
+*.vscode
