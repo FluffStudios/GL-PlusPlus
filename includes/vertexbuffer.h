@@ -46,6 +46,16 @@ namespace glpp
     {
         static GLuint sCurrentID_;
         GLuint mID_;
+        uint32_t mSize_;
+        bool mMapped_;
+
+        struct MapRange
+        {
+            uint32_t Offset = 0;
+            uint32_t Size   = 0;
+        };
+
+        MapRange mMappedRange_;
     public:
         /**
          * Creates a new Vertex Buffer object
@@ -82,9 +92,10 @@ namespace glpp
          * 
          * If the buffer is not bound, it will affect the currently bound 
          * buffer.  If no buffer is bound, OpenGL will have an invalid usage
-         * error code, as the default buffer cannot be modified.
+         * error code, as the default buffer cannot be modified.  Cannot be called
+         * on buffer when the buffer is bound.
          */
-        void SetData(sizei Size, const void * pData, BufferUsage Usage) const;
+        void SetData(sizei Size, const void * pData, BufferUsage Usage);
 
         /**
          * Sets the data in the vertex buffer
@@ -96,9 +107,10 @@ namespace glpp
          * 
          * If the buffer is not bound, it will affect the currently bound 
          * buffer.  If no buffer is bound, OpenGL will have an invalid usage
-         * error code, as the default buffer cannot be modified.
+         * error code, as the default buffer cannot be modified.  Cannot be called
+         * on buffer when data between [Offset, Offset + Size) is bound.
          */
-		void SetSubData(sizei Size, sizei Offset, const void * pData, BufferUsage Usage) const;
+		void SetSubData(sizei Size, sizei Offset, const void * pData, BufferUsage Usage);
 
         /**
          * Maps a range of the buffer to a pointer in memory
@@ -111,7 +123,7 @@ namespace glpp
          * buffer.  If no buffer is bound, OpenGL will have an invalid usage
          * error code, as the default buffer cannot be modified.
          */
-		void * MapBufferRange(sizei Size, sizei Offset, MapAccess Access) const;
+		void * MapBufferRange(sizei Size, sizei Offset, MapAccess Access);
 
         /**
          * Maps a buffer to a pointer in memory
@@ -122,7 +134,7 @@ namespace glpp
          * buffer.  If no buffer is bound, OpenGL will have an invalid usage
          * error code, as the default buffer cannot be modified.
          */
-        void * MapBuffer(MapAccess Access) const;
+        void * MapBuffer(MapAccess Access);
 
         /**
          * Notifies OpenGL that modifications have been made the mapping
@@ -135,7 +147,7 @@ namespace glpp
          * buffer.  If no buffer is bound, OpenGL will have an invalid usage
          * error code, as the default buffer cannot be modified.
          */
-        void FlushMappedBufferRange(sizei Size, GLsizei Offset) const;
+        void FlushMappedBufferRange(sizei Size, sizei Offset);
 
         /**
          * Unmaps the currently bound buffer. After unmapping, the pointer
@@ -148,7 +160,7 @@ namespace glpp
          * buffer.  If no buffer is bound, OpenGL will have an invalid usage
          * error code, as the default buffer cannot be modified.
          */
-        void Unmap() const;
+        void Unmap();
 
         /**
          * Gets the parameter of a buffer
@@ -187,20 +199,9 @@ namespace glpp
          * error code, as the default buffer cannot be modified.
          */
         void * GetBufferSubData(sizei Size, GLsizei Offset) const;
-
-        /**
-         * Returns a pointer to the buffer
-         * 
-         * @return          Pointer to data.  Data must be free'd when done, as it
-         *                  is heap allocated.
-         * 
-         * If the buffer is not bound, it will affect the currently bound 
-         * buffer.  If no buffer is bound, OpenGL will have an invalid usage
-         * error code, as the default buffer cannot be modified.
-         */
-        void * GetBufferPointer() const;
     private:
         void CheckBound() const;
         void CheckRebind() const;
+        void CheckMapped(uint32_t Offset, uint32_t Size) const;
     };
 }

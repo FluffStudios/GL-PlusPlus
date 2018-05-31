@@ -58,38 +58,98 @@ namespace glpp
         glBindBuffer(GL_ARRAY_BUFFER, 0);
     }
 
-    void VertexBuffer::SetData(sizei Size, const void * pData, BufferUsage Usage) const
+    void VertexBuffer::SetData(sizei Size, const void * pData, BufferUsage Usage)
     {
         CheckBound();
+        CheckMapped(0, Size);
+#ifdef _DEBUG
+        this->mSize_ = Size;
+        printf("Setting Vertex Buffer (%d) data with size (%d) and usage (%d)", mID_, mSize_, Usage);
+#endif
         glBufferData(GL_ARRAY_BUFFER, Size, pData, Usage);
     }
 
-    void VertexBuffer::SetSubData(sizei Size, sizei Offset, const void * pData, BufferUsage Usage) const
+    void VertexBuffer::SetSubData(sizei Size, sizei Offset, const void * pData, BufferUsage Usage)
     {
         CheckBound();
+        CheckMapped(Offset, Size);
+#ifdef _DEBUG
+        this->mSize_ = Size;
+        printf("Setting Vertex Buffer (%d) data with offset (%d), size (%d) and usage (%d)", mID_, Offset, mSize_, Usage);
+#endif
         glBufferSubData(GL_ARRAY_BUFFER, Offset, Size, pData);
     }
 
-    void * VertexBuffer::MapBufferRange(sizei Size, sizei Offset, MapAccess Access) const
+    void * VertexBuffer::MapBufferRange(sizei Size, sizei Offset, MapAccess Access)
     {
         CheckBound();
+#ifdef _DEBUG
+        if (mMapped_)
+        {
+            if ((mMappedRange_.Offset >= begin && (mMappedRange_.Offset + mMappedRange_.Size) <= begin)
+                || (mMappedRange_.Offset <= end && (mMappedRange_.Offset + mMappedRange_.Size) >= end))
+            {
+                Debug::Write("Buffer already mapped.", HIGH, INVALID_FUNCTION);
+            }
+        }
+
+        mMappedRange_.Offset = Offset;
+        mMappedRange_.Size = Size;
+        mMapped_ = true;
+#endif
         glMapBufferRange(GL_ARRAY_BUFFER, Offset, Size, Access);
+#ifdef _DEBUG
+        if (glGetError() == GL_OUT_OF_MEMORY)
+        {
+            Debug::Write("Out of memory.", HIGH, INVALID_FUNCTION);
+        }
+#endif
     }
 
-    void * VertexBuffer::MapBuffer(MapAccess Access) const
+    void * VertexBuffer::MapBuffer(MapAccess Access)
     {
         CheckBound();
+#ifdef _DEBUG
+        if (mMapped_)
+        {
+            if ((mMappedRange_.Offset >= begin && (mMappedRange_.Offset + mMappedRange_.Size) <= begin)
+                || (mMappedRange_.Offset <= end && (mMappedRange_.Offset + mMappedRange_.Size) >= end))
+            {
+                Debug::Write("Buffer already mapped.", HIGH, INVALID_FUNCTION);
+            }
+        }
+
+        mMappedRange_.Offset = 0;
+        mMappedRange_.Size = mSize_;
+        mMapped_ = true;
+#endif
         glMapBuffer(GL_ARRAY_BUFFER, Access);
+#ifdef _DEBUG
+        if (glGetError() == GL_OUT_OF_MEMORY)
+        {
+            Debug::Write("Out of memory.", HIGH, INVALID_FUNCTION);
+        }
+#endif
     }
 
-    void VertexBuffer::FlushMappedBufferRange(sizei Size, sizei Offset) const
+    void VertexBuffer::FlushMappedBufferRange(sizei Size, sizei Offset)
     {
         CheckBound();
+#ifdef _DEBUG
+        
+#endif
         glFlushMappedBufferRange(GL_ARRAY_BUFFER, Offset, Size);
     }
 
-    void VertexBuffer::Unmap() const
+    void VertexBuffer::Unmap()
     {
+#ifdef _DEBUG
+        if (!mMapped_)
+        {
+            Debug::Write("Buffer already unmapped.", LOW, INVALID_FUNCTION);
+        }
+        mMapped_ = false;
+#endif
         CheckBound();
         glUnmapBuffer(GL_ARRAY_BUFFER);
     }
@@ -119,14 +179,6 @@ namespace glpp
         return data;
     }
 
-    void * VertexBuffer::GetBufferPointer() const
-    {
-        CheckBound();
-        void * ptr = malloc(sizeof(sizei));
-        glGetBufferPointerv(GL_ARRAY_BUFFER, GL_BUFFER_MAP_POINTER, &ptr);
-        return ptr;
-    }
-
     void VertexBuffer::CheckBound() const
     {
 #ifdef _DEBUG
@@ -145,6 +197,23 @@ namespace glpp
 #ifdef _DEBUG
 		if (sCurrentID_ == mID_) Debug::Write("VertexBuffer already bound.", MEDIUM, PERFORMANCE);
 		sCurrentID_ = mID_;
+#endif
+    }
+
+    void VertexBuffer::CheckMapped(uint32_t Offset, uint32_t Size) const
+    {
+#ifdef _DEBUG
+        uint32_t begin = Offset;
+        uint32_t end = Offset + Size;
+
+        if (mMapped_)
+        {
+            if ((mMappedRange_.Offset >= begin && (mMappedRange_.Offset + mMappedRange_.Size) <= begin)
+                || (mMappedRange_.Offset <= end && (mMappedRange_.Offset + mMappedRange_.Size) >= end))
+            {
+                Debug::Write("Trying to access mapped data from invalid function!", HIGH, INVALID_FUNCTION);
+            }
+        }
 #endif
     }
 }
